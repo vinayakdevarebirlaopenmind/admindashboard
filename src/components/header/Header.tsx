@@ -80,8 +80,8 @@ const Header: React.FC<HeaderProps> = ({ onClick, onToggle }) => {
 
           <Link to="/" className="lg:hidden">
             <img
-              className="dark:hidden"
-              src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-DkL3ivcy.png"
+              className="dark:hidden w-100"
+              src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-BgOErajm.webp"
               alt="Logo"
             />
             <img

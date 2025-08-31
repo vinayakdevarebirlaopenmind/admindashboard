@@ -120,7 +120,7 @@ export default function EcommerceMetrics() {
              Courses
             </span>
             <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
-              5
+              4
             </h4>
           </div>
 

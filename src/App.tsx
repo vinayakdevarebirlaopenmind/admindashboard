@@ -24,6 +24,8 @@ import AllMeeting from "./components/zoomintegration/AllMeeting";
 import UploadUser from "./components/uploadData/UploadUser";
 import UserPassCreation from "./components/UserProfile/UserPassCreation";
 import ProtectedRoute from "./ProtectedRoute"; // 👈 import it
+import CouponAdminPanel from "./components/coupon/CouponCreation";
+import CertificateCreation from "./components/certificateCreation/CertificateCreation";
 
 export default function App() {
   return (
@@ -57,6 +59,8 @@ export default function App() {
           <Route path="/all-meetings" element={<AllMeeting />} />
           <Route path="/upload-user-data" element={<UploadUser />} />
           <Route path="/user-password-creation" element={<UserPassCreation />} />
+          <Route path="/coupon-creation" element={<CouponAdminPanel />} />
+          <Route path="/certificate-creation" element={<CertificateCreation />} />
         </Route>
 
         {/* Public Routes */}

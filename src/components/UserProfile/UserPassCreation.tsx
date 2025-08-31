@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_URL } from '../../utils/api_url';
 import { FiCheck, FiUser } from 'react-icons/fi';
+
 interface Student {
     user_uid: string;
     name: string;
     email: string;
-    password: string; // For newly generated/edited
-    student_login_password?: string; // From backend
+    password: string;
+    student_login_password?: string;
 }
 
+const ITEMS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
 const UserPassCreation: React.FC = () => {
     const [users, setUsers] = useState<Student[]>([]);
@@ -19,13 +21,15 @@ const UserPassCreation: React.FC = () => {
         show: false,
         message: '',
         type: 'success',
-    }); const showToast = (message: string, type: 'success' | 'error') => {
-        setToast({ show: true, message, type });
+    });
 
-        // Auto hide after 3 seconds
-        setTimeout(() => {
-            setToast({ show: false, message: '', type });
-        }, 3000);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [searchTerm, setSearchTerm] = useState(""); 
+
+    const showToast = (message: string, type: 'success' | 'error') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type }), 3000);
     };
 
     useEffect(() => {
@@ -37,8 +41,8 @@ const UserPassCreation: React.FC = () => {
                     user_uid: item.user_uid,
                     name: item.name,
                     email: item.email,
-                    password: '', // Will be updated by generate/edit
-                    student_login_password: item.student_login_password, // From backend
+                    password: '',
+                    student_login_password: item.student_login_password,
                 }));
                 setUsers(mappedUsers);
             } catch (error) {
@@ -47,7 +51,6 @@ const UserPassCreation: React.FC = () => {
                 setLoading(false);
             }
         };
-
         fetchUsers();
     }, []);
 
@@ -58,32 +61,25 @@ const UserPassCreation: React.FC = () => {
 
     const handleGenerate = (uid: string) => {
         const newPassword = generatePassword();
-        setUsers(prev =>
-            prev.map(user => user.user_uid === uid ? { ...user, password: newPassword } : user)
-        );
+        setUsers(prev => prev.map(user => user.user_uid === uid ? { ...user, password: newPassword } : user));
     };
 
     const handlePasswordChange = (uid: string, value: string) => {
-        setUsers(prev =>
-            prev.map(user => user.user_uid === uid ? { ...user, password: value } : user)
-        );
+        setUsers(prev => prev.map(user => user.user_uid === uid ? { ...user, password: value } : user));
     };
+
     const handleSendMail = async (user: Student) => {
         const actualPassword = user.password || user.student_login_password;
-
-        if (!actualPassword || actualPassword.trim() === '') {
+        if (!actualPassword?.trim()) {
             showToast('Password is empty!', 'error');
             return;
         }
-
         setSendingStatus(prev => ({ ...prev, [user.user_uid]: true }));
-
         try {
             await axios.post(`${API_URL}/api/insertStudentPassword`, {
                 email: user.email,
                 student_login_password: actualPassword,
             });
-
             showToast(`Password sent to ${user.email}`, 'success');
         } catch (error) {
             console.error('Failed to send password:', error);
@@ -93,20 +89,58 @@ const UserPassCreation: React.FC = () => {
         }
     };
 
+    // 🔍 Normalize search (trim + lowercase)
+    const normalizedSearch = searchTerm.trim().toLowerCase();
 
+    // 🔍 Filter users based on search
+    const filteredUsers = users.filter(user =>
+        user.name.toLowerCase().includes(normalizedSearch) ||
+        user.email.toLowerCase().includes(normalizedSearch)
+    );
 
+    // ✅ Ensure at least 1 page
+    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
 
+    const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
         <>
-            <div className="p-6 max-w-8xl bg-white dark:bg-gray-800 rounded shadow">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
-                    User Password Generation
-                </h2>
+            <div className="p-6 max-w-8xl dark:text-white bg-white dark:bg-gray-800 rounded shadow">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">User Password Generation</h2>
 
-                {loading ? (
-                    <p className="text-gray-700 dark:text-gray-300">Loading users...</p>
-                ) : (
+                {/* 🔍 Search + Items per page */}
+                <div className="flex items-center justify-between mb-4 dark:bg-gray-800 flex-wrap gap-4">
+                    <p>Total Users: {filteredUsers.length}</p>
+
+                    <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1); 
+                        }}
+                        className="border rounded px-3 border-black py-2 w-64 dark:bg-gray-700 dark:text-white"
+                    />
+
+                    <div>
+                        <label className="mr-2">Items per page:</label>
+                        <select
+                            value={itemsPerPage}
+                            onChange={(e) => {
+                                setItemsPerPage(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="border rounded px-2 py-1 dark:bg-gray-800"
+                        >
+                            {ITEMS_PER_PAGE_OPTIONS.map(option => (
+                                <option key={option} value={option}>{option}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {loading ? <p>Loading users...</p> : (
                     <table className="w-full border border-gray-300 text-sm text-left">
                         <thead className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white">
                             <tr>
@@ -118,56 +152,62 @@ const UserPassCreation: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {users.map(user => (
-                                <tr key={user.user_uid} className="bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-                                    <td className="p-2 border">{user.user_uid}</td>
-                                    <td className="p-2 border">{user.name}</td>
-                                    <td className="p-2 border">{user.email}</td>
-                                    <td className="p-2 border">
-                                        <input
-                                            type="text"
-                                            value={user.password || user.student_login_password || ''}
-                                            onChange={(e) => handlePasswordChange(user.user_uid, e.target.value)}
-                                            className="w-full border rounded px-2 py-1"
-                                        />
-                                    </td>
-                                    <td className="p-2 border space-x-2">
-                                        <button
-                                            onClick={() => handleGenerate(user.user_uid)}
-                                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded"
-                                        >
-                                            Generate
-                                        </button>
-                                        <button
-                                            onClick={() => handleSendMail(user)}
-                                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded disabled:opacity-60 disabled:cursor-not-allowed"
-                                            disabled={sendingStatus[user.user_uid]}
-                                        >
-                                            {sendingStatus[user.user_uid] ? 'Sending...' : 'Send Mail'}
-                                        </button>
-                                    </td>
+                            {paginatedUsers.length > 0 ? (
+                                paginatedUsers.map(user => (
+                                    <tr key={user.user_uid}>
+                                        <td className="p-2 border">{user.user_uid}</td>
+                                        <td className="p-2 border">{user.name}</td>
+                                        <td className="p-2 border">{user.email}</td>
+                                        <td className="p-2 border">
+                                            <input
+                                                type="text"
+                                                value={user.password || user.student_login_password || ''}
+                                                onChange={(e) => handlePasswordChange(user.user_uid, e.target.value)}
+                                                className="w-full border rounded px-2 py-1"
+                                            />
+                                        </td>
+                                        <td className="p-2 border space-x-2">
+                                            <button onClick={() => handleGenerate(user.user_uid)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded">Generate</button>
+                                            <button
+                                                onClick={() => handleSendMail(user)}
+                                                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded disabled:opacity-60"
+                                                disabled={sendingStatus[user.user_uid]}
+                                            >
+                                                {sendingStatus[user.user_uid] ? 'Sending...' : 'Send Mail'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td className="p-2 border text-center" colSpan={5}>No results found</td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 )}
+
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between mt-4">
+                    <div>
+                        Page {currentPage} of {totalPages}
+                    </div>
+                    <div className="space-x-2">
+                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(1)} className="px-2 py-1 border rounded disabled:opacity-50">First</button>
+                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)} className="px-2 py-1 border rounded disabled:opacity-50">Previous</button>
+                        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)} className="px-2 py-1 border rounded disabled:opacity-50">Next</button>
+                        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(totalPages)} className="px-2 py-1 border rounded disabled:opacity-50">Last</button>
+                    </div>
+                </div>
             </div>
 
             {toast.show && (
-                <div
-                    className={`fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg flex items-center transform transition-all duration-300 ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-                        } text-white z-50`}
-                >
-                    {toast.type === 'success' ? (
-                        <FiCheck className="h-5 w-5 mr-2" />
-                    ) : (
-                        <FiUser className="h-5 w-5 mr-2" />
-                    )}
+                <div className={`fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg flex items-center transform transition-all duration-300 ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white z-50`}>
+                    {toast.type === 'success' ? <FiCheck className="h-5 w-5 mr-2" /> : <FiUser className="h-5 w-5 mr-2" />}
                     <span>{toast.message}</span>
                 </div>
             )}
         </>
-
     );
 };
 

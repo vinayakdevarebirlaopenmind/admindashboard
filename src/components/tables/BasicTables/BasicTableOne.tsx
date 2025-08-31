@@ -189,10 +189,11 @@ const Leads = () => {
                 <TableCell
                   key={header}
                   isHeader
-                  className="px-5 py-3 font-medium text-start border text-sm"
+                  className={`px-5 py-3 font-medium text-start border text-sm ${header === "Query" ? "min-w-[300px]" : ""}`}
                 >
                   {header}
                 </TableCell>
+
               ))}
             </TableRow>
           </TableHeader>
@@ -206,7 +207,11 @@ const Leads = () => {
                 <TableCell className="px-5 py-4 text-start border">{lead.state}</TableCell>
                 <TableCell className="px-5 py-4 text-start border">{lead.city}</TableCell>
                 <TableCell className="px-5 py-4 text-start border">{lead.program}</TableCell>
-                <TableCell className={`px-5 py-4 text-start border ${lead.query === "From Ask me button" ? "text-red-500" : ""}`}>{lead.query}</TableCell>
+                <TableCell
+                  className={`px-5 py-4 text-start border whitespace-pre-line min-w-[350px] ${lead.query === "From Ask me button" ? "text-red-500" : ""}`}
+                >
+                  {lead.query}
+                </TableCell>
                 <TableCell className="px-5 py-4 text-start border">{formatReadableDate(lead.submitted_at)}</TableCell>
                 <TableCell className="px-5 py-4 text-start border">
                   <input

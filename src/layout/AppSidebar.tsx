@@ -14,8 +14,9 @@ import {
   // PieChartIcon,
   PlugInIcon,
   TableIcon,
-  VideoIcon,
+  VideoIcon, ShootingStarIcon,
   UserCircleIcon,
+  PaperPlaneIcon
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 // import SidebarWidget from "./SidebarWidget";
@@ -69,6 +70,15 @@ const navItems: NavItem[] = [
     icon: <UserCircleIcon />,
     name: "User Password creation",
     path: "/user-password-creation",
+  },
+  {
+    icon: <PaperPlaneIcon />,
+    name: "Coupon Creation System",
+    path: "/coupon-creation",
+  }, {
+    icon: <ShootingStarIcon />,
+    name: "Certificate Creation",
+    path: "/certificate-creation",
   },
   // {
   //   name: "Pages",
@@ -316,14 +326,14 @@ const AppSidebar: React.FC = () => {
             <>
               <img
                 className="dark:hidden"
-                src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-DkL3ivcy.png"
+                src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-BgOErajm.webp"
                 alt="Logo"
                 width={150}
                 height={40}
               />
               <img
                 className="hidden dark:block bg-white rounded-3xl p-5"
-                src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-DkL3ivcy.png"
+                src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-BgOErajm.webp"
                 alt="Logo"
                 width={150}
                 height={40}
@@ -331,7 +341,7 @@ const AppSidebar: React.FC = () => {
             </>
           ) : (
             <img
-              src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-DkL3ivcy.png"
+              src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-BgOErajm.webp"
               alt="Logo"
               width={32}
               height={32}
