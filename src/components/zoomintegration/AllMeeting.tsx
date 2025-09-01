@@ -19,6 +19,7 @@ type Meeting = {
     zoomlink: string;
     host_link: string;
     course_participants: Participant[] | string;
+    zoom_start_time?: string; // Added for merged Zoom data
 };
 
 function AllMeeting() {
@@ -27,14 +28,49 @@ function AllMeeting() {
     const [selectedParticipants, setSelectedParticipants] = useState<Participant[] | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [copiedZoomLink, setCopiedZoomLink] = useState<string | null>(null);
+    const [copiedHostLink, setCopiedHostLink] = useState<string | null>(null);
+    // const [uploadingRow, setUploadingRow] = useState<number | null>(null);
+    // const [uploadProgress, setUploadProgress] = useState<{ [key: number]: number }>({});
+    // const [uploadedFiles, setUploadedFiles] = useState<{ [key: number]: string[] }>({});
 
+    // const handleFileUpload = (files: FileList | null, rowIndex: number) => {
+    //     if (!files) return;
+    //     setUploadingRow(rowIndex);
+    //     setUploadProgress(prev => ({ ...prev, [rowIndex]: 0 }));
+    //     const fileNames = Array.from(files).map(file => file.name);
+    //     let progress = 0;
+    //     const interval = setInterval(() => {
+    //         progress += 20;
+    //         setUploadProgress(prev => ({ ...prev, [rowIndex]: progress }));
+
+    //         if (progress >= 100) {
+    //             clearInterval(interval);
+    //             setUploadedFiles(prev => ({
+    //                 ...prev,
+    //                 [rowIndex]: [...(prev[rowIndex] || []), ...fileNames],
+    //             }));
+    //             setUploadingRow(null);
+    //         }
+    //     }, 300);
+    // };
+    // Function to handle copy and set state
+    const handleCopy = (text: string, type: "zoom" | "host") => {
+        navigator.clipboard.writeText(text);
+        if (type === "zoom") {
+            setCopiedZoomLink(text);
+            setTimeout(() => setCopiedZoomLink(null), 2000);
+        } else {
+            setCopiedHostLink(text);
+            setTimeout(() => setCopiedHostLink(null), 2000);
+        }
+    };
     const [filters, setFilters] = useState({
         title: '',
         course: '',
         batch: '',
         date: ''
     });
-
     useEffect(() => {
         const fetchMeetings = async () => {
             try {
@@ -48,6 +84,36 @@ function AllMeeting() {
 
                 setMeetings(fetchedMeetings);
                 setFilteredMeetings(fetchedMeetings);
+
+                // Now fetch Zoom meeting details for timings
+                const meetingIds = fetchedMeetings.map(m => m.zoomlink?.split('/').pop()).filter(Boolean);
+                if (meetingIds.length > 0) {
+                    const zoomResponse = await axios.post(`${API_URL}/api/fetch-zoommeeting-by-meetingid`, {
+                        meeting_ids: meetingIds,
+                    });
+
+                    const zoomMap = new Map();
+                    zoomResponse.data.meetings.forEach((z: any) => {
+                        if (z.success) zoomMap.set(String(z.meeting_id), z.data);
+                    });
+
+                    // Merge Zoom start_time & timezone into meeting object
+                    const merged = fetchedMeetings.map(meeting => {
+                        const meetingId = meeting.zoomlink?.split('/').pop();
+                        const zoomData = zoomMap.get(meetingId);
+                        return zoomData
+                            ? {
+                                ...meeting,
+                                zoom_start_time: zoomData.start_time,
+                                zoom_timezone: zoomData.timezone,
+                            }
+                            : meeting;
+                    });
+
+                    setMeetings(merged);
+                    setFilteredMeetings(merged);
+                }
+
             } catch (err) {
                 console.error('Error fetching meetings:', err);
                 setError('Failed to load meeting data.');
@@ -55,6 +121,7 @@ function AllMeeting() {
                 setLoading(false);
             }
         };
+
         fetchMeetings();
     }, []);
 
@@ -138,86 +205,145 @@ function AllMeeting() {
             {filteredMeetings.length === 0 ? (
                 <div className='dark:text-white'>No meetings match the filters.</div>
             ) : (
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 border">
-                        <thead className="bg-gray-100">
+                <div className="overflow-auto border rounded-lg shadow-sm">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+                        <thead className="bg-gray-100 dark:bg-gray-700">
                             <tr>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Title</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Course</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Batch No.</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Date & Time</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Duration</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Zoom Link (student)</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Host Link (Trainer)</th>
-                                <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700">Participants</th>
+                                {[
+                                    "Title",
+                                    "Course",
+                                    "Batch No.",
+                                    "Date & Time",
+                                    "Duration",
+                                    "Zoom Link (Student)",
+                                    "Host Link (Trainer)",
+                                    "Participants",
+                                    // "Upload Attachments",
+                                ].map((heading) => (
+                                    <th
+                                        key={heading}
+                                        className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-100 whitespace-nowrap"
+                                    >
+                                        {heading}
+                                    </th>
+                                ))}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200 dark:text-white">
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-600 bg-white dark:bg-gray-800">
                             {filteredMeetings.map((meeting, index) => (
-                                <tr key={index}>
-                                    <td className="px-4 py-2">{meeting.meeting_title}</td>
-                                    <td className="px-4 py-2">{meeting.course_name}</td>
-                                    <td className="px-4 py-2">{meeting.batch_number}</td>
-                                    <td className="px-4 py-2">{formatReadableDate(meeting.date_time)}</td>
-                                    <td className="px-4 py-2">{meeting.duration} min</td>
-                                    <td className="px-4 py-2 flex items-center space-x-2">
+                                <tr
+                                    key={index}
+                                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    <td className="px-4 py-3 whitespace-nowrap">{meeting.meeting_title}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap">{meeting.course_name}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap">{meeting.batch_number}</td>
+                                    {/* <td className="px-4 py-3 whitespace-nowrap">
+                                        {(formatReadableDate(meeting.date_time))}
+                                    </td> */}<td className="px-4 py-3 whitespace-nowrap">
+                                        {meeting.zoom_start_time
+                                            ? formatReadableDate(meeting.zoom_start_time)
+                                            : formatReadableDate(meeting.date_time)}
+                                    </td>
+
+                                    <td className="px-4 py-3 whitespace-nowrap">{meeting.duration} min</td>
+
+                                    <td className="px-4 py-3 whitespace-nowrap flex flex-col gap-1">
                                         <a
                                             href={meeting.zoomlink}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="text-blue-600 underline dark:text-amber-600"
+                                            className="text-blue-600 underline dark:text-blue-300"
                                         >
-                                            Share Meeting
+                                            Share with Students
                                         </a>
                                         <button
-                                            onClick={() => navigator.clipboard.writeText(meeting.zoomlink)}
-                                            className="text-sm text-gray-600 hover:text-black dark:hover:text-white border border-gray-300 px-2 py-1 rounded"
+                                            onClick={() => handleCopy(meeting.zoomlink, "zoom")}
+                                            className={`text-xs ${copiedZoomLink === meeting.zoomlink
+                                                ? "text-green-600 dark:text-green-400"
+                                                : "text-gray-600 dark:text-gray-300"
+                                                } hover:text-black dark:hover:text-white border border-gray-300 dark:border-gray-600 px-2 py-1 rounded`}
                                         >
-                                            Copy
+                                            {copiedZoomLink === meeting.zoomlink ? "Copied" : "Copy"}
                                         </button>
                                     </td>
-                                    <td className="px-4 py-2 flex items-center space-x-2">
-                                        {meeting.host_link ? (
-                                            <>
-                                                <a
-                                                    href={meeting.host_link}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-blue-600 underline dark:text-amber-600"
-                                                >
-                                                    Join Meeting
-                                                </a>
-                                                <button
-                                                    onClick={() => navigator.clipboard.writeText(meeting.host_link)}
-                                                    className="text-sm text-gray-600 hover:text-black dark:hover:text-white border border-gray-300 px-2 py-1 rounded"
-                                                >
-                                                    Copy
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <span className="text-gray-500">No link</span>
-                                        )}
+
+
+                                    <td className="px-4 py-3 align-middle whitespace-nowrap">                                        {meeting.host_link ? (
+                                        <>
+                                            <a
+                                                href={meeting.host_link}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 underline dark:text-blue-300"
+                                            >
+                                                Start as Trainer
+                                            </a>
+                                            <button
+                                                onClick={() => handleCopy(meeting.host_link, "host")}
+                                                className={`text-xs ${copiedHostLink === meeting.host_link
+                                                    ? "text-green-600 dark:text-green-400"
+                                                    : "text-gray-600 dark:text-gray-300"
+                                                    } hover:text-black dark:hover:text-white border border-gray-300 dark:border-gray-600 px-2 py-1 rounded`}
+                                            >
+                                                {copiedHostLink === meeting.host_link ? "Copied" : "Copy"}
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <span className="text-gray-500 dark:text-gray-400">No link</span>
+                                    )}
                                     </td>
-                                    <td className="px-4 py-2 relative">
-                                        {Array.isArray(meeting.course_participants) && meeting.course_participants.length > 0 ? (
-                                            <div className="flex items-center space-x-2">
+
+
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        {Array.isArray(meeting.course_participants) &&
+                                            meeting.course_participants.length > 0 ? (
+                                            <div className="flex items-center gap-2">
                                                 <span>{meeting.course_participants.length} participant(s)</span>
                                                 <button
-                                                    onClick={() => setSelectedParticipants(meeting.course_participants as Participant[])}
-                                                    className="text-blue-600 dark:text-emerald-200"
+                                                    onClick={() =>
+                                                        setSelectedParticipants(meeting.course_participants as Participant[])
+                                                    }
+                                                    className="text-blue-600 dark:text-emerald-300 hover:underline"
+                                                    title="View participants"
                                                 >
                                                     <AiOutlineInfoCircle />
                                                 </button>
                                             </div>
                                         ) : (
-                                            <span className="text-gray-500">No participants</span>
+                                            <span className="text-gray-500 dark:text-gray-400">No participants</span>
                                         )}
-                                    </td>
+                                    </td> 
+                                    {/* <td className="px-4 py-3 whitespace-nowrap">
+                                        {uploadingRow === index ? (
+                                            <div className="flex items-center gap-2">
+                                                <AiOutlineLoading3Quarters className="animate-spin text-blue-500" />
+                                                <span>{uploadProgress[index] || 0}%</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    onChange={(e) => handleFileUpload(e.target.files, index)}
+                                                    className="block text-sm text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                                />
+                                                {uploadedFiles[index] && uploadedFiles[index].length > 0 && (
+                                                    <ul className="mt-2 text-xs text-gray-600 dark:text-gray-300 list-disc list-inside">
+                                                        {uploadedFiles[index].map((file, i) => (
+                                                            <li key={i}>{file}</li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                            </>
+                                        )}
+                                    </td> */}
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
+
             )}
 
             {/* Modal */}

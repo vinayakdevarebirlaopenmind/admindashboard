@@ -20,6 +20,7 @@ interface ZoomMeetingResponse {
   meeting_id: string;
   password: string;
   start_url: string;
+  meeting_time: string;
 }
 interface User {
   id: number;
@@ -65,14 +66,15 @@ const ZoomAdminPanel: React.FC = () => {
     title: "",
     dateTime: "",
     duration: "",
-    timeZone: "India (GMT+5:30)",
-    instructorName: "", // Add this line
+    timeZone: "Asia/Kolkata",
+    instructorName: "",
   });
   const [meetingInfo, setMeetingInfo] = useState({
     zoom_link: "",
     meeting_id: "",
     password: "",
     start_url: "",
+    meeting_time: ""
   });
   const [showZoomLink, setShowZoomLink] = useState(false);
   const [toast, setToast] = useState({
@@ -170,10 +172,17 @@ const ZoomAdminPanel: React.FC = () => {
     }
 
     const meetingDate = new Date(meetingDetails.dateTime);
+    // console.log(meetingDate);
+    // console.log('====================================');
+    // console.log(meetingDate.toLocaleTimeString());
+    // console.log(meetingDate.toDateString());
+    // console.log('====================================');
+    // return;
     if (meetingDate < new Date()) {
       showToast("Meeting time must be in the future", "error");
       return;
     }
+
 
     setIsLoading((prev) => ({ ...prev, generating: true }));
 
@@ -190,7 +199,8 @@ const ZoomAdminPanel: React.FC = () => {
         `${API_URL}/api/generate-zoom-link`,
         {
           meeting_title: meetingDetails.title,
-          date_time: meetingDetails.dateTime,
+          // date_time: meetingDetails.dateTime,
+          date_time: meetingDate.toISOString(),
           duration: meetingDetails.duration,
           time_zone: meetingDetails.timeZone,
           course_name: courseName,
@@ -199,12 +209,15 @@ const ZoomAdminPanel: React.FC = () => {
           course_participants_email: participants.map((p) => p.email).join(","),
         }
       );
-
+      console.log('====================================');
+      console.log(response.data);
+      console.log('====================================');
       setMeetingInfo({
         zoom_link: response.data.zoom_link,
         meeting_id: response.data.meeting_id,
         password: response.data.password,
         start_url: response.data.start_url,
+        meeting_time: response.data.meeting_time,
       });
 
       setShowZoomLink(true);
@@ -250,7 +263,7 @@ const ZoomAdminPanel: React.FC = () => {
         batch_no: batch,
         course_participants: participants,
         meeting_title: meetingDetails.title,
-        date_time: meetingDetails.dateTime,
+        date_time: meetingInfo.meeting_time,
         duration: meetingDetails.duration,
         time_zone: meetingDetails.timeZone,
         instructor_name: meetingDetails.instructorName, // Add this line
@@ -261,7 +274,10 @@ const ZoomAdminPanel: React.FC = () => {
           start_url: meetingInfo.start_url,
         },
       };
-
+      // console.log('====================================');
+      // console.log('meetingData', meetingData);
+      // console.log('====================================');
+      // return;
       const response = await axios.post(
         `${API_URL}/api/publish-meeting`,
         meetingData
@@ -285,7 +301,7 @@ const ZoomAdminPanel: React.FC = () => {
         password: meetingInfo.password,
       };
       console.log(response, newMeeting);
-
+      // return
       showToast(
         "Meeting published successfully! Notifications sent to participants."
       );
@@ -299,7 +315,7 @@ const ZoomAdminPanel: React.FC = () => {
         title: "",
         dateTime: "",
         duration: "",
-        timeZone: "India (GMT+5:30)",
+        timeZone: "Asia/Kolkata",
         instructorName: "", // Add this line
       });
       setMeetingInfo({
@@ -307,6 +323,7 @@ const ZoomAdminPanel: React.FC = () => {
         meeting_id: "",
         password: "",
         start_url: "",
+        meeting_time: ""
       });
       setShowZoomLink(false);
     } catch (error: any) {
@@ -441,6 +458,32 @@ const ZoomAdminPanel: React.FC = () => {
                 <h3 className="text-lg font-medium dark:text-white'">
                   Course Participants
                 </h3>
+                {/* <div className="w-full max-w-md mx-auto">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      className="w-full border rounded-xl py-2 pl-4 pr-10 border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                      <svg
+                        className="w-5 h-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                </div> */}
+
                 <div className="flex space-x-2">
                   <button
                     onClick={() => toggleAllUsers(true)}
@@ -468,21 +511,18 @@ const ZoomAdminPanel: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {/* Header */}
+
                     <div className="flex items-center font-semibold text-gray-700 border-b pb-2 dark:text-white text-sm">
-                      <div className="w-6"></div> {/* Checkbox space */}
+                      <div className="w-6"></div>
                       <div className="w-1/3">Name (Email)</div>
                       <div className="w-1/4">Purchased Date</div>
-                     {/* <div className="w-1/4">Amount Paid</div> */}
-                    </div>
 
-                    {/* Data Rows */}
+                    </div>
                     {users.map((user) => (
                       <div
                         key={user.id}
                         className="flex items-start text-sm text-gray-700 dark:text-white border-b pb-2"
                       >
-                        {/* Checkbox */}
                         <div className="w-6">
                           <input
                             type="checkbox"
@@ -494,24 +534,15 @@ const ZoomAdminPanel: React.FC = () => {
                             }
                           />
                         </div>
-
-                        {/* Name & Email */}
                         <label
                           htmlFor={`user-${user.id}`}
                           className="w-1/3 truncate cursor-pointer"
                         >
                           {user.name} ({user.email})
                         </label>
-
-                        {/* Purchase Date */}
                         <span className="w-1/4 px-2 py-1 rounded-full bg-gray-100 text-gray-800 text-xs font-medium text-center">
                           {user.course_purchased_date}
                         </span>
-
-                        {/* Amount Paid */}
-                        {/* <span className="w-1/4 px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold text-center">
-                          ₹{user.amount_paid}
-                        </span> */}
                       </div>
                     ))}
                   </div>
@@ -589,7 +620,7 @@ const ZoomAdminPanel: React.FC = () => {
                     }
                   />
                 </div>
-                <div>
+                {/* <div>
                   <label
                     htmlFor="timeZone"
                     className="block text-sm dark:text-white font-medium text-gray-700 mb-1"
@@ -607,9 +638,9 @@ const ZoomAdminPanel: React.FC = () => {
                       })
                     }
                   >
-                    <option value="India">India (GMT+5:30)</option>
+                    <option value="Asia/Kolkata">India (GMT+5:30)</option>
                   </select>
-                </div>
+                </div> */}
                 <div>
                   <label
                     htmlFor="instructorName"
@@ -787,9 +818,8 @@ const ZoomAdminPanel: React.FC = () => {
       </main>
       {toast.show && (
         <div
-          className={`fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg flex items-center transform transition-all duration-300 ${
-            toast.type === "success" ? "bg-green-600" : "bg-red-600"
-          } text-white`}
+          className={`fixed bottom-5 right-5 px-6 py-3 rounded-lg shadow-lg flex items-center transform transition-all duration-300 ${toast.type === "success" ? "bg-green-600" : "bg-red-600"
+            } text-white`}
         >
           {toast.type === "success" ? (
             <FiCheck className="h-5 w-5 mr-2" />

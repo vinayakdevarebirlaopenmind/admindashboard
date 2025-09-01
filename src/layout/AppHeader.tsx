@@ -86,12 +86,12 @@ const AppHeader: React.FC = () => {
           <Link to="/" className="lg:hidden">
             <img
               className="dark:hidden"
-              src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-DkL3ivcy.png"
+              src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-BgOErajm.webp"
               alt="Logo"
             />
             <img
               className="hidden dark:block"
-              src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-DkL3ivcy.png"
+              src="https://birlalearnleap.com/assets/LearnLeap%20Final%20Logo-BgOErajm.webp"
               alt="Logo"
             />
           </Link>
