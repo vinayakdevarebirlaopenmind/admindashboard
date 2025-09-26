@@ -16,7 +16,6 @@ import {
   TableIcon,
   VideoIcon, ShootingStarIcon,
   UserCircleIcon,
-  PaperPlaneIcon
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 // import SidebarWidget from "./SidebarWidget";
@@ -71,11 +70,12 @@ const navItems: NavItem[] = [
     name: "User Password creation",
     path: "/user-password-creation",
   },
-  {
-    icon: <PaperPlaneIcon />,
-    name: "Coupon Creation System",
-    path: "/coupon-creation",
-  }, {
+  // {
+  //   icon: <PaperPlaneIcon />,
+  //   name: "Coupon Creation System",
+  //   path: "/coupon-creation",
+  // },
+   {
     icon: <ShootingStarIcon />,
     name: "Certificate Creation",
     path: "/certificate-creation",

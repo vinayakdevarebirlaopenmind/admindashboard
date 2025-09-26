@@ -43,13 +43,7 @@ interface Meeting {
   meetingId?: string;
   password?: string;
 }
-// interface MeetingDetails {
-//   title: string;
-//   dateTime: string;
-//   duration: string;
-//   timeZone: string;
-//   instructorName: string; // Add this line
-// }
+
 const ZoomAdminPanel: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
@@ -61,7 +55,7 @@ const ZoomAdminPanel: React.FC = () => {
     users: false,
     generating: false,
     publishing: false,
-  });
+  }); const [zoomAccount, setZoomAccount] = useState("1");
   const [meetingDetails, setMeetingDetails] = useState({
     title: "",
     dateTime: "",
@@ -74,7 +68,7 @@ const ZoomAdminPanel: React.FC = () => {
     meeting_id: "",
     password: "",
     start_url: "",
-    meeting_time: ""
+    meeting_time: "",
   });
   const [showZoomLink, setShowZoomLink] = useState(false);
   const [toast, setToast] = useState({
@@ -87,10 +81,7 @@ const ZoomAdminPanel: React.FC = () => {
     const loadCourses = async () => {
       setIsLoading((prev) => ({ ...prev, courses: true }));
       try {
-        // Replace mock API call with real API call
         const response = await axios.get(`${API_URL}/api/getAllCourses`);
-
-        // Assuming your API returns an array of courses with { id, title } structure
         setCourses(response.data);
       } catch (error) {
         console.error("Error fetching courses:", error);
@@ -161,6 +152,14 @@ const ZoomAdminPanel: React.FC = () => {
       return;
     }
 
+    if (!zoomAccount) {
+      showToast("Please select a Zoom account", "error");
+      return;
+    }
+
+    // console.log('zoomAccount: ', zoomAccount);
+    // return
+
     if (!batch) {
       showToast("Please select a batch", "error");
       return;
@@ -172,12 +171,6 @@ const ZoomAdminPanel: React.FC = () => {
     }
 
     const meetingDate = new Date(meetingDetails.dateTime);
-    // console.log(meetingDate);
-    // console.log('====================================');
-    // console.log(meetingDate.toLocaleTimeString());
-    // console.log(meetingDate.toDateString());
-    // console.log('====================================');
-    // return;
     if (meetingDate < new Date()) {
       showToast("Meeting time must be in the future", "error");
       return;
@@ -199,19 +192,17 @@ const ZoomAdminPanel: React.FC = () => {
         `${API_URL}/api/generate-zoom-link`,
         {
           meeting_title: meetingDetails.title,
-          // date_time: meetingDetails.dateTime,
+          zoomAccount: zoomAccount,
           date_time: meetingDate.toISOString(),
           duration: meetingDetails.duration,
           time_zone: meetingDetails.timeZone,
           course_name: courseName,
           batch_no: batch,
-          instructor_name: meetingDetails.instructorName, // Add this line
+          instructor_name: meetingDetails.instructorName,
           course_participants_email: participants.map((p) => p.email).join(","),
         }
       );
-      console.log('====================================');
-      console.log(response.data);
-      console.log('====================================');
+
       setMeetingInfo({
         zoom_link: response.data.zoom_link,
         meeting_id: response.data.meeting_id,
@@ -260,7 +251,7 @@ const ZoomAdminPanel: React.FC = () => {
       const meetingData = {
         course_name: courseTitle,
         course_id: selectedCourse,
-        batch_no: batch,
+        batch_no: batch, zoomAccount: zoomAccount,
         course_participants: participants,
         meeting_title: meetingDetails.title,
         date_time: meetingInfo.meeting_time,
@@ -323,7 +314,7 @@ const ZoomAdminPanel: React.FC = () => {
         meeting_id: "",
         password: "",
         start_url: "",
-        meeting_time: ""
+        meeting_time: "",
       });
       setShowZoomLink(false);
     } catch (error: any) {
@@ -511,16 +502,14 @@ const ZoomAdminPanel: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-
                     <div className="flex items-center font-semibold text-gray-700 border-b pb-2 dark:text-white text-sm">
                       <div className="w-6"></div>
                       <div className="w-1/3">Name (Email)</div>
                       <div className="w-1/4">Purchased Date</div>
-
                     </div>
-                    {users.map((user) => (
+                    {users.map((user, index) => (
                       <div
-                        key={user.id}
+                        key={`${user.id}-${index}`}
                         className="flex items-start text-sm text-gray-700 dark:text-white border-b pb-2"
                       >
                         <div className="w-6">
@@ -552,11 +541,28 @@ const ZoomAdminPanel: React.FC = () => {
           )}
 
           {selectedCourse && (
+
+
             <div className="mb-6 ">
-              <h3 className="text-lg  dark:text-white font-medium text-gray-800 mb-3">
+
+              <label className="block text-lg font-medium text-gray-700 mb-2 dark:text-white">
+                Select Zoom Account
+              </label>
+              <div className="relative">
+                <select
+                  className="block w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
+                  value={zoomAccount}
+                  onChange={(e) => setZoomAccount(e.target.value)}
+                >
+                  <option value="1">Zoom Account 1 - Learnleap@birlaopenminds.com</option>
+                  <option value="2">Zoom Account 2 - info@birlalearnleap.com</option>
+                </select>
+              </div>
+
+              {/* <h3 className="text-lg  dark:text-white font-medium text-gray-800 mb-3">
                 Meeting Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              </h3> */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
                 <div>
                   <label
                     htmlFor="meetingTitle"

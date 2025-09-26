@@ -25,6 +25,7 @@ const UserPassCreation: React.FC = () => {
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [searchTerm, setSearchTerm] = useState(""); 
 
     const showToast = (message: string, type: 'success' | 'error') => {
         setToast({ show: true, message, type });
@@ -88,16 +89,40 @@ const UserPassCreation: React.FC = () => {
         }
     };
 
-    const totalPages = Math.ceil(users.length / itemsPerPage);
-    const paginatedUsers = users.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    // 🔍 Normalize search (trim + lowercase)
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    // 🔍 Filter users based on search
+    const filteredUsers = users.filter(user =>
+        user.name.toLowerCase().includes(normalizedSearch) ||
+        user.email.toLowerCase().includes(normalizedSearch)
+    );
+
+    // ✅ Ensure at least 1 page
+    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+
+    const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
         <>
             <div className="p-6 max-w-8xl dark:text-white bg-white dark:bg-gray-800 rounded shadow">
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">User Password Generation</h2>
 
-                <div className="flex items-center justify-between mb-4 dark:bg-gray-800">
-                    <p>Total Users: {users.length}</p>
+                {/* 🔍 Search + Items per page */}
+                <div className="flex items-center justify-between mb-4 dark:bg-gray-800 flex-wrap gap-4">
+                    <p>Total Users: {filteredUsers.length}</p>
+
+                    <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={searchTerm}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1); 
+                        }}
+                        className="border rounded px-3 border-black py-2 w-64 dark:bg-gray-700 dark:text-white"
+                    />
+
                     <div>
                         <label className="mr-2">Items per page:</label>
                         <select
@@ -106,7 +131,7 @@ const UserPassCreation: React.FC = () => {
                                 setItemsPerPage(Number(e.target.value));
                                 setCurrentPage(1);
                             }}
-                            className="border rounded px-2 py-1  dark:bg-gray-800"
+                            className="border rounded px-2 py-1 dark:bg-gray-800"
                         >
                             {ITEMS_PER_PAGE_OPTIONS.map(option => (
                                 <option key={option} value={option}>{option}</option>
@@ -127,32 +152,37 @@ const UserPassCreation: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedUsers.map(user => (
-                                <tr key={user.user_uid}>
-                                    <td className="p-2 border">{user.user_uid}</td>
-                                    <td className="p-2 border">{user.name}</td>
-                                    <td className="p-2 border">{user.email}</td>
-                                    <td className="p-2 border">
-                                        <input
-                                            type="text"
-                                            value={user.password || user.student_login_password || ''}
-                                            onChange={(e) => handlePasswordChange(user.user_uid, e.target.value)}
-                                            className="w-full border rounded px-2 py-1"
-                                        />
-                                    </td>
-                                    <td className="p-2 border space-x-2">
-                                        <button onClick={() => handleGenerate(user.user_uid)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded">Generate</button>
-                                        <button
-                                            onClick={() => handleSendMail(user)}
-                                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded disabled:opacity-60"
-                                            // disabled={sendingStatus[user.user_uid] || !!(user.password || user.student_login_password)}
-                                        >
-                                            {sendingStatus[user.user_uid] ? 'Sending...' : 'Send Mail'}
-                                        </button>
-
-                                    </td>
+                            {paginatedUsers.length > 0 ? (
+                                paginatedUsers.map(user => (
+                                    <tr key={user.user_uid}>
+                                        <td className="p-2 border">{user.user_uid}</td>
+                                        <td className="p-2 border">{user.name}</td>
+                                        <td className="p-2 border">{user.email}</td>
+                                        <td className="p-2 border">
+                                            <input
+                                                type="text"
+                                                value={user.password || user.student_login_password || ''}
+                                                onChange={(e) => handlePasswordChange(user.user_uid, e.target.value)}
+                                                className="w-full border rounded px-2 py-1"
+                                            />
+                                        </td>
+                                        <td className="p-2 border space-x-2">
+                                            <button onClick={() => handleGenerate(user.user_uid)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded">Generate</button>
+                                            <button
+                                                onClick={() => handleSendMail(user)}
+                                                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded disabled:opacity-60"
+                                                disabled={sendingStatus[user.user_uid]}
+                                            >
+                                                {sendingStatus[user.user_uid] ? 'Sending...' : 'Send Mail'}
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td className="p-2 border text-center" colSpan={5}>No results found</td>
                                 </tr>
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 )}

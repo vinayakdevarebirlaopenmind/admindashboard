@@ -20,6 +20,7 @@ type Meeting = {
     host_link: string;
     course_participants: Participant[] | string;
     zoom_start_time?: string; // Added for merged Zoom data
+    zoom_account?: string | number; // Added for zoom account
 };
 
 function AllMeeting() {
@@ -85,34 +86,48 @@ function AllMeeting() {
                 setMeetings(fetchedMeetings);
                 setFilteredMeetings(fetchedMeetings);
 
-                // Now fetch Zoom meeting details for timings
-                const meetingIds = fetchedMeetings.map(m => m.zoomlink?.split('/').pop()).filter(Boolean);
-                if (meetingIds.length > 0) {
+                // ✅ Group meetings by zoom_account
+                const accountGroups: { [key: string]: string[] } = {};
+                fetchedMeetings.forEach(m => {
+                    const meetingId = m.zoomlink?.split('/').pop();
+                    if (meetingId) {
+                        const accountId = String(m.zoom_account || "1"); // default to 1
+                        if (!accountGroups[accountId]) {
+                            accountGroups[accountId] = [];
+                        }
+                        accountGroups[accountId].push(meetingId);
+                    }
+                });
+
+                const zoomMap = new Map();
+
+                // ✅ Fetch Zoom details per account
+                for (const accountId of Object.keys(accountGroups)) {
                     const zoomResponse = await axios.post(`${API_URL}/api/fetch-zoommeeting-by-meetingid`, {
-                        meeting_ids: meetingIds,
+                        meeting_ids: accountGroups[accountId],
+                        zoomAccount: accountId,
                     });
 
-                    const zoomMap = new Map();
                     zoomResponse.data.meetings.forEach((z: any) => {
                         if (z.success) zoomMap.set(String(z.meeting_id), z.data);
                     });
-
-                    // Merge Zoom start_time & timezone into meeting object
-                    const merged = fetchedMeetings.map(meeting => {
-                        const meetingId = meeting.zoomlink?.split('/').pop();
-                        const zoomData = zoomMap.get(meetingId);
-                        return zoomData
-                            ? {
-                                ...meeting,
-                                zoom_start_time: zoomData.start_time,
-                                zoom_timezone: zoomData.timezone,
-                            }
-                            : meeting;
-                    });
-
-                    setMeetings(merged);
-                    setFilteredMeetings(merged);
                 }
+
+                // ✅ Merge Zoom start_time & timezone
+                const merged = fetchedMeetings.map(meeting => {
+                    const meetingId = meeting.zoomlink?.split('/').pop();
+                    const zoomData = zoomMap.get(meetingId);
+                    return zoomData
+                        ? {
+                            ...meeting,
+                            zoom_start_time: zoomData.start_time,
+                            zoom_timezone: zoomData.timezone,
+                        }
+                        : meeting;
+                });
+
+                setMeetings(merged);
+                setFilteredMeetings(merged);
 
             } catch (err) {
                 console.error('Error fetching meetings:', err);
@@ -124,6 +139,7 @@ function AllMeeting() {
 
         fetchMeetings();
     }, []);
+
 
     useEffect(() => {
         const { title, course, batch, date } = filters;
@@ -217,6 +233,7 @@ function AllMeeting() {
                                     "Duration",
                                     "Zoom Link (Student)",
                                     "Host Link (Trainer)",
+                                    "Zoom Account",
                                     "Participants",
                                     // "Upload Attachments",
                                 ].map((heading) => (
@@ -269,7 +286,7 @@ function AllMeeting() {
                                     </td>
 
 
-                                    <td className="px-4 py-3 align-middle whitespace-nowrap">                                        {meeting.host_link ? (
+                                    <td className="px-4 py-3 align-middle whitespace-nowrap">                                           {meeting.host_link ? (
                                         <>
                                             <a
                                                 href={meeting.host_link}
@@ -293,8 +310,9 @@ function AllMeeting() {
                                         <span className="text-gray-500 dark:text-gray-400">No link</span>
                                     )}
                                     </td>
-
-
+                                    
+                                    {/* {console.log(meeting.zoom_account)} */}
+                                    <td className="px-4 py-3 whitespace-nowrap">{meeting.zoom_account == 1 ? "Learnleap@birlaopenminds.com" : "info@birlalearnleap.com"}</td>
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         {Array.isArray(meeting.course_participants) &&
                                             meeting.course_participants.length > 0 ? (
@@ -313,7 +331,7 @@ function AllMeeting() {
                                         ) : (
                                             <span className="text-gray-500 dark:text-gray-400">No participants</span>
                                         )}
-                                    </td> 
+                                    </td>
                                     {/* <td className="px-4 py-3 whitespace-nowrap">
                                         {uploadingRow === index ? (
                                             <div className="flex items-center gap-2">

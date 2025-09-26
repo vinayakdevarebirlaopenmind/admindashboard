@@ -87,10 +87,10 @@ const CertificateCreation: React.FC = () => {
             showToast("Student ID is required before generating the certificate.", "error");
             return;
         }
-        if (!selectedScore || selectedScore.trim() === "") {
-            showToast("Score is required before generating the certificate.", "error");
-            return;
-        }
+        // if (!selectedScore || selectedScore.trim() === "") {
+        //     showToast("Score is required before generating the certificate.", "error");
+        //     return;
+        // }
         // console.log(users.find(u => u.user_uid === uid)?.course_title);
         // return;
         setGenerating(prev => ({ ...prev, [uid]: true }));
@@ -241,7 +241,7 @@ const CertificateCreation: React.FC = () => {
                                             }
                                             className={`border w-32 px-2 py-1 rounded ${!scoreSelections[user.user_uid] ? 'border-red-500' : ''}`}
                                             placeholder="Enter Score"
-                                            required
+                                            // required
                                         />
                                     </td>
                                     <td className="p-2 border">
